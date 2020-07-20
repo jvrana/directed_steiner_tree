@@ -1,4 +1,6 @@
-# cleaned version
+"""dsteiner/__init__.py"""
+
+
 from typing import *
 import networkx as nx
 import numpy as np
@@ -7,31 +9,13 @@ import functools
 
 @functools.lru_cache()
 def cost(g, terminal_nodes):
-  e = g.number_of_edges()
-  k = 0
-  # found = terminal_nodes.intersection(set(g.nodes()))
-
-  for n in terminal_nodes:
-    if n in g.nodes():
-      k += 1
-  if k == 0:
+  found = terminal_nodes.intersection(set(g.nodes()))
+  if len(found) == 0:
     return np.inf
-  return e / k
+  return g.number_of_edges() / len(found)
 
-
-# def get_shortest_path_graph(g, source, target):
-#   try:
-#     path = nx.shortest_path(g, source=source, target=target)
-#     return g.subgraph(path)
-#   except nx.NetworkXNoPath:
-#     return nx.DiGraph()
-
-
-def has_path(g, n1, n2):
-  if n1 in g and n2 in g[n1]:
-    return True
-  return False
-
+# TODO: implement edge weighted
+# TODO: implement generic pairs
 @functools.lru_cache()
 def _recursive_d_steiner(g: nx.DiGraph, k: int, r: Hashable, t: Set[Hashable], i=0):
   reachable_nodes = set(nx.bfs_tree(g, r).nodes())
@@ -39,6 +23,8 @@ def _recursive_d_steiner(g: nx.DiGraph, k: int, r: Hashable, t: Set[Hashable], i
 
   # initialize tree
   tree = nx.DiGraph()
+
+  # TODO: do we need to add the root node??
   # tree.add_node(r)
 
   # terminate early if k terminals are not reachable
@@ -80,18 +66,29 @@ def _recursive_d_steiner(g: nx.DiGraph, k: int, r: Hashable, t: Set[Hashable], i
       tree = t_best
 
     # each loop should be guaranteed to find k terminal nodes
-    n_term = len(t.intersection(set(t_best.nodes())))
+    t_best_nodes = set(t_best.nodes())
+    n_term = len(t.intersection(t_best_nodes))
     if n_term == 0:
       raise Exception("({}) Did not find {} terminal node(s). {}".format(i, k, t))
 
     # update terminal nodes
-    k = k - len(t.intersection(set(t_best.nodes())))
-    t = frozenset(t - set(t_best.nodes()))
+    k = k - n_term
+    t = frozenset(t - t_best_nodes)
 
   return tree
 
 
 def directed_steiner_tree(g: nx.DiGraph, k: int, r: Hashable, t: Set[Hashable]):
+  """
+  Approximate the optimal steiner tree rooted at 'r' to set of 'k' terminal nodes
+  't'.
+
+  :param g: directed networkx graph
+  :param k: number of terminal nodes to find a steiner tree for
+  :param r: root node
+  :param t: set of terminal nodes
+  :return: approximate steiner tree
+  """
 
   if isinstance(t, list):
     t = frozenset(t)
