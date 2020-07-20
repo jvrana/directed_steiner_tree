@@ -7,15 +7,50 @@ import numpy as np
 import functools
 
 
+def longest_shortest_path(g, src: List[Hashable], dest: List[Hashable]):
+  nodelist = list(g.nodes())
+  if src not in nodelist:
+    return np.inf
+  else:
+    src_index = nodelist.index(src)
+  dest_indices = []
+  for _dest in dest:
+    if _dest not in nodelist:
+      pass
+    else:
+      dest_indices.append(nodelist.index(_dest))
+  if not dest_indices:
+    return np.inf
+
+  w = nx.floyd_warshall_numpy(g, nodelist=nodelist)
+  return w[src_index, dest_indices].max()
+
+
+
+
 @functools.lru_cache()
-def cost(g, terminal_nodes):
+def cost(g, r, terminal_nodes):
   found = terminal_nodes.intersection(set(g.nodes()))
   if len(found) == 0:
     return np.inf
   return g.number_of_edges() / len(found)
 
+@functools.lru_cache()
+def path_cost(g, root, terminal_nodes):
+  """Alternative cost function that accounts for the 'longest shortest-path'"""
+  found = terminal_nodes.intersection(set(g.nodes()))
+  if len(found) == 0:
+    return np.inf
+
+  x = longest_shortest_path(g, root, terminal_nodes)
+  return (x + g.number_of_edges()) / len(found)
+
+
+# cost = path_cost
+
 # TODO: implement edge weighted
 # TODO: implement generic pairs
+# TODO: implement 'longest shortest path'
 @functools.lru_cache()
 def _recursive_d_steiner(g: nx.DiGraph, k: int, r: Hashable, t: Set[Hashable], i=0):
   reachable_nodes = set(nx.bfs_tree(g, r).nodes())
@@ -51,10 +86,10 @@ def _recursive_d_steiner(g: nx.DiGraph, k: int, r: Hashable, t: Set[Hashable], i
         _tree.add_edge(r, v)
         if t_best_cost is None:
           t_best = _tree
-          t_best_cost = cost(t_best, t)
+          t_best_cost = cost(t_best, r, t)
         else:
           # update the best tree
-          _tree_cost = cost(_tree, t)
+          _tree_cost = cost(_tree, r, t)
           if _tree_cost < t_best_cost:
             t_best = _tree
             t_best_cost = _tree_cost

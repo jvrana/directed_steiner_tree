@@ -1,9 +1,12 @@
-# def get_shortest_path_graph(g, source, target):
-#   try:
-#     path = nx.shortest_path(g, source=source, target=target)
-#     return g.subgraph(path)
-#   except nx.NetworkXNoPath:
-#     return nx.DiGraph()
+import networkx as nx
+
+
+def get_shortest_path_graph(g, source, target):
+  try:
+    path = nx.shortest_path(g, source=source, target=target)
+    return g.subgraph(path)
+  except nx.NetworkXNoPath:
+    return nx.DiGraph()
 
 
 
